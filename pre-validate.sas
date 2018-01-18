@@ -58,7 +58,7 @@ ods graphics off;
 
 
 /********************************************/
-/*			 creating template    not work yet			*/
+/*			 creating template  			*/
 /*******************************************/
 proc template; *STARTS PROC TEMPLATE;
 define statgraph scatdens2; *DEFINES A GRAPH TO BE CALL SCATDENS;
@@ -66,28 +66,36 @@ begingraph; *BEGIN DEFINING THE GRAPH;
 entrytitle "planned vs impulse Scatter plot with density plots"; *CREATE A TITLE;
 layout lattice/columns = 2 rows = 2 columnweights = (.8 .2) rowweights = (.8 .2)
 columndatarange = union rowdatarange = union;
-*LAYOUT LATTICE/COLUMNS = 2 ROWS = 2 SETS UP A GRID, OR LATTICE, OF GRAPHS;
-*COLUMNWEIGHTS AND ROWWEIGHTS SETS THE RELATIVE SIZE OF THE INDIVIDUAL COLUMNS AND ROWS;
+/*LAYOUT LATTICE/COLUMNS = 2 ROWS = 2 SETS UP A GRID, OR LATTICE, OF GRAPHS*/
+/*COLUMNWEIGHTS AND ROWWEIGHTS SETS THE RELATIVE SIZE OF THE INDIVIDUAL COLUMNS AND ROWS*/
 columnaxes;
 columnaxis /label = "PLANNED (%)" griddisplay = on;
 columnaxis /label = "" griddisplay = on;
 endcolumnaxes;
 *COLUMNAXES SETS THE CHARACTERISTICS OF COLUMNS;
-*THE SECOND ONE HAS NO LABEL (NONE WOULD FIT)
+/*THE SECOND ONE HAS NO LABEL (NONE WOULD FIT)*/
 rowaxes;
-rowaxis /label = "Infant IMPULSE (%)" griddisplay = on;
+rowaxis /label = "IMPULSE (%)" griddisplay = on;
 rowaxis /label = "" griddisplay = on;
 endrowaxes;
-layout overlay; *STARTS THE ACTUAL GRAPHING OF DOTS AND SUCH;
-scatter plot x = PLANNED y = IMPULSE; *GRAPHS THE DOTS;
-loessplot x = PLANNED y = IMPULSE/nomarkers;
-loessplot x =PLANNED y = IMPULSE/smooth = 1 nomarkers;
-ellipse x = PLANNED y = IMPULSE/type = predicted;
+
+
+layout overlay; /*STARTS THE ACTUAL GRAPHING OF DOTS AND SUCH*/
+scatterplot x = PLANNED y = IMPULSE/datalabel=LEVEL_OF_PLANNING group=groups; *GRAPHS THE DOTS;
+title "planned vs. impulse";
+/*loessplot x = PLANNED y = IMPULSE/nomarkers;
+loessplot x =PLANNED y = IMPULSE/smooth = 1 nomarkers;*/
+ellipse x = PLANNED y = IMPULSE/type = predicted alpha=0.1;
 endlayout;
-5
-densityplot infantmortality/orient = horizontal;
+
+densityplot IMPULSE/orient = horizontal;
 densityplot PLANNED;
 endlayout;
 endgraph;
 end;
 run;
+
+ods graphics on/width=9in height=8in;
+proc sgrender data = sampleplan_impulse template = scatdens2;
+run;
+ods graphics off;
