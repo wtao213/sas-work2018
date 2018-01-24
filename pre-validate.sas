@@ -188,20 +188,18 @@ ods graphics off;
 proc sgplot data=neilson_scatter;
   title "&value Distribution By Category Types";
 
-  density &value/group=GROUPS  scale= percentage;
-  xaxis values=(0 to 1 by 0.2) ;
-  yaxis label="Percentage Of Category";
+  density &value/group=GROUPS scale= percent;
+  xaxis values=(0 to 1 by 0.2) TICKVALUEFORMAT= percent10.;
+  yaxis label="Percentage Of Category" ;
   keylegend / location=inside position=topright;
-
 run;
 
 proc sgplot data=neilson_scatter;
-	title "&value Distribution";
+	title "Total categories' &value Distribution";
 	histogram &value;
 	density &value/scale= count;
-  xaxis values=(0 to 1 by 0.2) ;
-  yaxis label="Percentage Of Category";
-
+  xaxis values=(0 to 1 by 0.2) TICKVALUEFORMAT= percent10.;/* use tickvalueformat to decide the format */
+  yaxis label="Count Of Category";
 run;
 
 title 'Extreme &value Observations';
@@ -216,3 +214,41 @@ run;
 %densityplot(value=PLANNED)
 %densityplot(value=AUTOPILOT)
 %densityplot(value=Price_Not_Consider)
+
+
+
+
+/***************************************/
+/* macro scatter plot   */
+/*********************************/
+data neilson_new;
+	set neilson_scatter;
+	format auto_plan_outlier $32.;
+
+	if  0.3 <=AUTOPILOT <=0.6  and 0.45 <= PLANNED <=0.9 then	auto_plan_outlier = "";
+	else														auto_plan_outlier = LEVEL_OF_PLANNING;
+run;
+
+ods graphics on//*width=9in height=8in*/;
+proc sgplot data=neilson_new;
+	scatter x=AUTOPILOT y=PLANNED /datalabel=auto_plan_outlier group=GROUPS;
+	xaxis values= (0 to 1 by 0.2);
+	yaxis values= (0 to 1 by 0.2);
+	title "Relation Between AUTOPILOT vs PLANNED";
+	ellipse x=AUTOPILOT y=PLANNED ;
+run;
+ods graphics off;
+
+%macro scartter(x=,y=);
+
+ods graphics on//*width=9in height=8in*/;
+proc sgplot data=neilson_scatter;
+	scatter x=&x y=&y //*datalabel=LEVEL_OF_PLANNING*/ group=GROUPS;
+	xaxis values= (0 to 1 by 0.2);
+	yaxis values= (0 to 1 by 0.2);
+	title "Relation Between &x and &y";
+	ellipse x=&x y=&y ;
+run;
+ods graphics off;
+
+%mend scartter;
