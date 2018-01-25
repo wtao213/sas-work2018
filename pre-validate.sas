@@ -126,7 +126,7 @@ ods graphics off;
 /********************************************************************/
 /* 		macro ploting scatter plot with density plotings 			*/
 /********************************************************************/
-%macro scartter_density(x=,y=);
+%macro scartter_density(data=,CHANNEL=,x=,y=);
 
 proc template; *STARTS PROC TEMPLATE;
 define statgraph scatdens4; *DEFINES A GRAPH TO BE CALL SCATDENS;
@@ -153,6 +153,7 @@ define statgraph scatdens4; *DEFINES A GRAPH TO BE CALL SCATDENS;
 				yaxisopts=(griddisplay=on linearopts=(viewmax=1 viewmin=0 tickvaluelist=(0 .2 .4 .6 .8 1.0)))  ; /*STARTS THE ACTUAL GRAPHING OF DOTS AND SUCH*/
 				scatterplot x = &x  y = &y/ datalabel=LEVEL_OF_PLANNING group=GROUPS  ; *GRAPHS THE DOTS;
 				title "&x  vs. &y";
+				footnote &CHANNEL;
 				/*loessplot x =PLANNED y = IMPULSE/smooth = 1 nomarkers;*/
 				ellipse x = &x y = &y/ type = predicted alpha=0.1;
 			endlayout;
@@ -165,36 +166,37 @@ define statgraph scatdens4; *DEFINES A GRAPH TO BE CALL SCATDENS;
 run;
 
 ods graphics on/width=9in height=8in;
-proc sgrender data = neilson_scatter1 template = scatdens4;
+proc sgrender data = &data template = scatdens4;
+	where CHANNEL= &CHANNEL;
 run;
 ods graphics off;
 
 %mend scartter_density;
 
-
-%scartter_density(x=ENGAGED,y=AUTOPILOT )
-%scartter_density(x=PLANNED,y=unplanned)
-%scartter_density(x=Price_Not_Consider,y=Price_Consider)
-%scartter_density(x=AUTOPILOT,y=PLANNED )
-%scartter_density(x=AUTOPILOT,y=Price_Not_Consider )
-%scartter_density(x=PLANNED,y=Price_Not_Consider)
+%scartter_density(data=neilson_scatter1,CHANNEL="ALL CHANNEL",x=ENGAGED,y=AUTOPILOT)
+%scartter_density(data=neilson_scatter1,CHANNEL="ALL CHANNEL",x=PLANNED,y=unplanned)
+%scartter_density(data=neilson_scatter1,CHANNEL="ALL CHANNEL",x=Price_Not_Consider,y=Price_Consider)
+%scartter_density(data=neilson_scatter1,CHANNEL="ALL CHANNEL",x=AUTOPILOT,y=PLANNED )
+%scartter_density(data=neilson_scatter1,CHANNEL="ALL CHANNEL",x=AUTOPILOT,y=Price_Not_Consider )
+%scartter_density(data=neilson_scatter1,CHANNEL="ALL CHANNEL",x=PLANNED,y=Price_Not_Consider)
 
 
 /***************************************************/
 /*	 densityplot in sas   */
 /**************************/
-
-%macro densityplot(value=);
-proc sgplot data=neilson_scatter;
+%macro densityplot(data=,CHANNEL=,value=);
+proc sgplot data=&data;
+  where CHANNEL = &CHANNEL;
   title "&value Distribution By Category Types";
-
   density &value/group=GROUPS scale= percent;
   xaxis values=(0 to 1 by 0.2) TICKVALUEFORMAT= percent10.;
   yaxis label="Percentage Of Category" ;
   keylegend / location=inside position=topright;
+  footnote &CHANNEL;
 run;
 
-proc sgplot data=neilson_scatter;
+proc sgplot data=&data;
+	where CHANNEL = &CHANNEL;
 	title "Total categories' &value Distribution";
 	histogram &value;
 	density &value/scale= count;
@@ -204,16 +206,17 @@ run;
 
 title 'Extreme &value Observations';
 ods select ExtremeObs;
-proc univariate data=neilson_scatter nextrval=10;
+proc univariate data=&data nextrval=10;
+	where CHANNEL = &CHANNEL;
    var &value;
    id LEVEL_OF_PLANNING;  /*show the name of category */
 run;
 
 %mend densityplot;
 
-%densityplot(value=PLANNED)
-%densityplot(value=AUTOPILOT)
-%densityplot(value=Price_Not_Consider)
+%densityplot(data=neilson_scatter1,CHANNEL="ALL CHANNEL",value=PLANNED)
+%densityplot(data=neilson_scatter1,CHANNEL="ALL CHANNEL",value=AUTOPILOT)
+%densityplot(data=neilson_scatter1,CHANNEL="ALL CHANNEL",value=Price_Not_Consider)
 
 
 
@@ -239,10 +242,12 @@ proc sgplot data=neilson_new;
 run;
 ods graphics off;
 
-%macro scartter(x=,y=);
+
+%macro scartter(data=,CHANNEL=,x=,y=);
 
 ods graphics on//*width=9in height=8in*/;
-proc sgplot data=neilson_scatter;
+proc sgplot data=&data;
+	where CHANNEL = &CHANNEL;
 	scatter x=&x y=&y //*datalabel=LEVEL_OF_PLANNING*/ group=GROUPS;
 	xaxis values= (0 to 1 by 0.2);
 	yaxis values= (0 to 1 by 0.2);
