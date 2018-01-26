@@ -173,12 +173,21 @@ ods graphics off;
 
 %mend scartter_density;
 
-%scartter_density(data=neilson_scatter1,CHANNEL="ALL CHANNEL",x=ENGAGED,y=AUTOPILOT)
-%scartter_density(data=neilson_scatter1,CHANNEL="ALL CHANNEL",x=PLANNED,y=unplanned)
-%scartter_density(data=neilson_scatter1,CHANNEL="ALL CHANNEL",x=Price_Not_Consider,y=Price_Consider)
-%scartter_density(data=neilson_scatter1,CHANNEL="ALL CHANNEL",x=AUTOPILOT,y=PLANNED )
-%scartter_density(data=neilson_scatter1,CHANNEL="ALL CHANNEL",x=AUTOPILOT,y=Price_Not_Consider )
-%scartter_density(data=neilson_scatter1,CHANNEL="ALL CHANNEL",x=PLANNED,y=Price_Not_Consider)
+%scartter_density(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",x=ENGAGED,y=AUTOPILOT)
+%scartter_density(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",x=PLANNED,y=unplanned)
+%scartter_density(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",x=Price_Not_Consider,y=Price_Consider)
+
+%scartter_density(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",x=AUTOPILOT,y=PLANNED )
+%scartter_density(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",x=AUTOPILOT,y=Price_Not_Consider )
+%scartter_density(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",x=PLANNED,y=Price_Not_Consider)
+
+%scartter_density(data=neilson_different_channels2,CHANNEL="LCL CONV",x=AUTOPILOT,y=PLANNED )
+%scartter_density(data=neilson_different_channels2,CHANNEL="LCL CONV",x=AUTOPILOT,y=Price_Not_Consider )
+%scartter_density(data=neilson_different_channels2,CHANNEL="LCL CONV",x=PLANNED,y=Price_Not_Consider)
+
+%scartter_density(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",x=AUTOPILOT,y=PLANNED )
+%scartter_density(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",x=AUTOPILOT,y=Price_Not_Consider )
+%scartter_density(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",x=PLANNED,y=Price_Not_Consider)
 
 
 /***************************************************/
@@ -206,7 +215,7 @@ run;
 
 title 'Extreme &value Observations';
 ods select ExtremeObs;
-proc univariate data=&data nextrval=10;
+proc univariate data=&data nextrobs=10;/* difference between nextrobs he nextrval */
 	where CHANNEL = &CHANNEL;
    var &value;
    id LEVEL_OF_PLANNING;  /*show the name of category */
@@ -214,46 +223,94 @@ run;
 
 %mend densityplot;
 
-%densityplot(data=neilson_scatter1,CHANNEL="ALL CHANNEL",value=PLANNED)
-%densityplot(data=neilson_scatter1,CHANNEL="ALL CHANNEL",value=AUTOPILOT)
-%densityplot(data=neilson_scatter1,CHANNEL="ALL CHANNEL",value=Price_Not_Consider)
+%densityplot(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",value=PLANNED)
+%densityplot(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",value=AUTOPILOT)
+%densityplot(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",value=Price_Not_Consider)
+
+%densityplot(data=neilson_different_channels2,CHANNEL="LCL CONV",value=PLANNED)
+%densityplot(data=neilson_different_channels2,CHANNEL="LCL CONV",value=AUTOPILOT)
+%densityplot(data=neilson_different_channels2,CHANNEL="LCL CONV",value=Price_Not_Consider)
+
+%densityplot(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",value=PLANNED)
+%densityplot(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",value=AUTOPILOT)
+%densityplot(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",value=Price_Not_Consider)
+
+/****************************************/
+/* compare metrics in different markets */
+/****************************************/
+%densityplot(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",value=PLANNED)
+%densityplot(data=neilson_different_channels2,CHANNEL="LCL CONV",value=PLANNED)
+%densityplot(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",value=PLANNED)
 
 
+%densityplot(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",value=AUTOPILOT)
+%densityplot(data=neilson_different_channels2,CHANNEL="LCL CONV",value=AUTOPILOT)
+%densityplot(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",value=AUTOPILOT)
 
+%densityplot(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",value=Price_Not_Consider)
+%densityplot(data=neilson_different_channels2,CHANNEL="LCL CONV",value=Price_Not_Consider)
+%densityplot(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",value=Price_Not_Consider)
 
-/***************************************/
-/* macro scatter plot   */
-/*********************************/
-data neilson_new;
-	set neilson_scatter;
-	format auto_plan_outlier $32.;
-
-	if  0.3 <=AUTOPILOT <=0.6  and 0.45 <= PLANNED <=0.9 then	auto_plan_outlier = "";
-	else														auto_plan_outlier = LEVEL_OF_PLANNING;
-run;
-
-ods graphics on//*width=9in height=8in*/;
-proc sgplot data=neilson_new;
-	scatter x=AUTOPILOT y=PLANNED /datalabel=auto_plan_outlier group=GROUPS;
-	xaxis values= (0 to 1 by 0.2);
-	yaxis values= (0 to 1 by 0.2);
-	title "Relation Between AUTOPILOT vs PLANNED";
-	ellipse x=AUTOPILOT y=PLANNED ;
-run;
-ods graphics off;
-
+/***************************************************/
+/* macro scatter plot  with label only on outliers */
+/***************************************************/
 
 %macro scartter(data=,CHANNEL=,x=,y=);
 
+proc rank data=&data out=new groups=20;
+	where CHANNEL=&CHANNEL;
+	var &x;
+	ranks rank_of_x;
+run;
+
+proc rank data=new out=new1 groups=20;
+	var &y;
+	ranks rank_of_y;
+run;
+
+data new2;
+	set new1;
+	format category_outlier $32.;
+
+	if  0< rank_of_y <19 and 0< rank_of_x <19	then category_outlier = "";
+	else											 category_outlier = LEVEL_OF_PLANNING;
+
+run;
+
 ods graphics on//*width=9in height=8in*/;
-proc sgplot data=&data;
-	where CHANNEL = &CHANNEL;
-	scatter x=&x y=&y //*datalabel=LEVEL_OF_PLANNING*/ group=GROUPS;
+proc sgplot data=new2;
+	scatter x=&x y=&y /datalabel=category_outlier group=GROUPS;
 	xaxis values= (0 to 1 by 0.2);
 	yaxis values= (0 to 1 by 0.2);
 	title "Relation Between &x and &y";
+	footnote &CHANNEL;
 	ellipse x=&x y=&y ;
 run;
 ods graphics off;
 
 %mend scartter;
+
+%scartter(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",x=AUTOPILOT,y=PLANNED )
+%scartter(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",x=AUTOPILOT,y=Price_Not_Consider )
+%scartter(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",x=PLANNED,y=Price_Not_Consider)
+
+%scartter(data=neilson_different_channels2,CHANNEL="LCL CONV",x=AUTOPILOT,y=PLANNED )
+%scartter(data=neilson_different_channels2,CHANNEL="LCL CONV",x=AUTOPILOT,y=Price_Not_Consider )
+%scartter(data=neilson_different_channels2,CHANNEL="LCL CONV",x=PLANNED,y=Price_Not_Consider)
+
+%scartter(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",x=AUTOPILOT,y=PLANNED )
+%scartter(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",x=AUTOPILOT,y=Price_Not_Consider )
+%scartter(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",x=PLANNED,y=Price_Not_Consider)
+
+
+
+/************************************/
+/* testing for factor analysis   */
+/*********************************/
+ods graphics on;
+proc factor data=neilson_scatter1 out=final_data nfactors=2 outstat=c plots=all rotate=varimax m=ml;
+	var PLANNED  ENGAGED Price_Not_Consider;
+ /*REMINDER   IMPULSE  UNPLANNED  ENGAGED  AUTOPILOT Price_Not_Consider Price_Consider BEST_PRICE_IN_BRAND_SET 
+	BEST_QUALITY_IN_PRICE_SET BEST_VALUE_IN_PRICE_RANGE LOWEST_PRICE_PER_UNIT LOWEST_POSSIBLE_PRICE ;*/
+run;
+ods graphics off;
