@@ -197,6 +197,7 @@ ods graphics off;
 proc sgplot data=&data;
   where CHANNEL = &CHANNEL;
   title "&value Distribution By Category Types";
+  histogram &value/group=GROUPS scale= percent transparency=0.8;
   density &value/group=GROUPS scale= percent;
   xaxis values=(0 to 1 by 0.2) TICKVALUEFORMAT= percent10.;
   yaxis label="Percentage Of Category" ;
@@ -233,7 +234,7 @@ run;
 
 %densityplot(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",value=PLANNED)
 %densityplot(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",value=AUTOPILOT)
-%densityplot(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",value=Price_Not_Consider)
+%densityplot(data=neilson_different_channels2,CHANNEL="GROCERY STORE(Conventional)",value=Price_Consider)
 
 /****************************************/
 /* compare metrics in different markets */
@@ -314,3 +315,178 @@ proc factor data=neilson_scatter1 out=final_data nfactors=2 outstat=c plots=all 
 	BEST_QUALITY_IN_PRICE_SET BEST_VALUE_IN_PRICE_RANGE LOWEST_PRICE_PER_UNIT LOWEST_POSSIBLE_PRICE ;*/
 run;
 ods graphics off;
+
+
+
+
+
+/*****************************************/
+/* tonnage distribution by food/non food */
+/******************************************/
+
+%macro densitytonnage(data=,CHANNEL=,group=,value=);
+proc sgplot data=&data ;
+  where BenchMarket = &CHANNEL;
+  title "&value Distribution By Category Types";
+  histogram &value/group=&group transparency=0.8;
+  density &value/group=&group scale= count;
+  /*xaxis values=(0 to 1 by 0.2) TICKVALUEFORMAT= percent10.;*/
+  /*yaxis label="Percentage Of Category" ;*/
+  keylegend / location=inside position=topright;
+  footnote &CHANNEL;
+run;
+
+proc sgplot data=&data;
+	where BenchMarket = &CHANNEL;
+	title "Total categories' &value Distribution";
+	histogram &value/scale=count;
+	density &value/scale= count;
+ /* xaxis values=(0 to 1 by 0.2) TICKVALUEFORMAT= percent10.;*//* use tickvalueformat to decide the format */
+  yaxis label="Count Of Category";
+run;
+
+title 'Extreme &value Observations';
+ods select ExtremeObs;
+proc univariate data=&data nextrobs=10;/* difference between nextrobs he nextrval */
+	where BenchMarket = &CHANNEL;
+   var &value;
+   id MCH0 ;  /*show the name of category */
+run;
+
+%mend densitytonnage;
+
+
+%densitytonnage(data=Nielsen_Data_Distribution_Curves,CHANNEL="LCL Conv",group=FoodVsNonFood,value=YoYTonnage)
+%densitytonnage(data=Nielsen_Data_Distribution_Curves,CHANNEL="LCL Conv",group=FoodVsNonFood,value=YoYPromoTonnage)
+%densitytonnage(data=Nielsen_Data_Distribution_Curves,CHANNEL="LCL Conv",group=FoodVsNonFood,value=YoYNonPromoTonnage)
+
+
+%densitytonnage(data=Nielsen_Data_Distribution_Curves,CHANNEL="AC Conv",group=FoodVsNonFood,value=YoYTonnage)
+%densitytonnage(data=Nielsen_Data_Distribution_Curves,CHANNEL="AC Conv",group=FoodVsNonFood,value=YoYPromoTonnage)
+%densitytonnage(data=Nielsen_Data_Distribution_Curves,CHANNEL="AC Conv",group=FoodVsNonFood,value=YoYNonPromoTonnage)
+
+%densitytonnage(data=Nielsen_Data_Distribution_Curves,CHANNEL="AC",group=FoodVsNonFood,value=YoYTonnage)
+%densitytonnage(data=Nielsen_Data_Distribution_Curves,CHANNEL="AC",group=FoodVsNonFood,value=YoYPromoTonnage)
+%densitytonnage(data=Nielsen_Data_Distribution_Curves,CHANNEL="AC",group=FoodVsNonFood,value=YoYNonPromoTonnage)
+
+
+%densitytonnage(data=Nielsen_Data_Distribution_Curves,CHANNEL="GDM",group=FoodVsNonFood,value=YoYTonnage)
+%densitytonnage(data=Nielsen_Data_Distribution_Curves,CHANNEL="GDM",group=FoodVsNonFood,value=YoYPromoTonnage)
+%densitytonnage(data=Nielsen_Data_Distribution_Curves,CHANNEL="GDM",group=FoodVsNonFood,value=YoYNonPromoTonnage)
+
+
+proc sgplot data=Nielsen_Data_Distribution_Curves;
+  where BenchMarket = "GDM";
+  title "value Distribution By Category Types";
+
+  histogram YoYPromoTonnage/transparency=0.8 scale=percent;
+ 
+  /*xaxis values=(0 to 1 by 0.2) TICKVALUEFORMAT= percent10.;*/
+  density YoYPromoTonnage/group=FoodVsNonFood scale=percent;
+  keylegend / location=inside position=topright;
+  
+run;
+
+
+/*********************************************/
+/*				3D PLOTTING 				*/
+/*********************************************/
+
+goptions reset=all border;
+title1 "3D Plotting";
+
+footnote1 j=r "Sepal Width not Shown";
+axis1 order=(0 to 1 by 0.2);
+proc g3d data=neilson_different_channels2;
+	
+	where CHANNEL= "ALL CHANNEL"; 
+
+  	scatter PLANNED*AUTOPILOT=Price_Consider /noneedle shape="balloon"
+    color="light blue" size=1 xaxis=axis1 yaxis=axis1 zaxis=axis1 
+	xticknum=5 yticknum=5 zticknum=5;
+
+run;
+
+proc g3d data=neilson_different_channels2;
+	
+	where CHANNEL= "ALL CHANNEL"; 
+
+  	scatter PLANNED*AUTOPILOT=Price_Consider //*noneedle*/ shape="balloon"
+    color="light blue" size=1 xaxis=axis1 yaxis=axis1 zaxis=axis1 
+	xticknum=5 yticknum=5 zticknum=5 rotate=90;
+
+run;
+
+quit;
+
+data list;
+	set neilson_different_channels2;
+
+	/*where PLANNED > 0.5 and AUTOPILOT >0.5 and  Price_Consider>0.5;*/
+
+	where 0.4< Price_Consider <0.6;
+run;
+
+/************************************************/
+/* create label for only certain category    */
+/*********************************************/
+data Class;
+set Sashelp.Class;
+Label = Name;
+if Name not in ("Joyce", "Judy", "Philip") then
+   Label = " ";
+run;
+
+
+/****************************************/
+/* scartter plot for certain categories */
+/****************************************/
+%macro scartter_ca(data=,CHANNEL=,x=);
+/*create label for certain categories */
+data new;
+	set &data;
+	where CHANNEL=&CHANNEL;
+	Label = LEVEL_OF_PLANNING;
+if LEVEL_OF_PLANNING not in ("DELI CHEESE", "FROZEN SEAFOOD", "FRESH SEAFOOD","FRESH MEAT & POULTRY","CHOCOLATE"
+,"CARBONATED SOFT DRINKS","TEA","Bananas","Berries") then
+   Label = " ";
+run;
+
+/* ploting them by category */
+proc sgplot data=new;
+	scatter x=&x y=LEVEL_OF_PLANNING /datalabel=Label group=GROUPS markerattrs=(symbol=Circlefilled);
+	xaxis values= (0 to 1 by 0.2);
+	yaxis display=none;
+	title "scatter on &x";
+	footnote &CHANNEL;
+run;
+/* histogram distribution */
+proc sgplot data=&data;
+	where CHANNEL = &CHANNEL;
+	title "Total categories' &x Distribution";
+	histogram &x/group=GROUPS transparency=0.8 scale=count;
+	density &x/group=GROUPS scale=count;
+  xaxis values=(0 to 1 by 0.2) TICKVALUEFORMAT= percent10.;/* use tickvalueformat to decide the format */
+  yaxis label="Count Of Category";
+  footnote &CHANNEL;
+run;
+/* list the  highest and lowest value */
+title 'Extreme &x Observations';
+ods select ExtremeObs;
+proc univariate data=&data nextrobs=2;/* difference between nextrobs he nextrval */
+	where CHANNEL = &CHANNEL;
+   var &x;
+   id LEVEL_OF_PLANNING;  /*show the name of category */
+run;
+/* find value for our target categories */
+proc print data=new (keep= &x  LEVEL_OF_PLANNING);
+	where LEVEL_OF_PLANNING in ("DELI CHEESE", "FROZEN SEAFOOD", "FRESH SEAFOOD","FRESH MEAT & POULTRY","CHOCOLATE"
+,"CARBONATED SOFT DRINKS","TEA","Bananas","Berries");
+run;
+
+%mend scartter_ca;
+
+%scartter_ca(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",x=AUTOPILOT)
+%scartter_ca(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",x=PLANNED)
+%scartter_ca(data=neilson_different_channels2,CHANNEL="ALL CHANNEL",x=Price_Consider)
+
