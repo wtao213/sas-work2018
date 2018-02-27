@@ -29,12 +29,19 @@ data new(drop=Sales1 Sales2 Sales3 Sales4 Units1 Units2 Units3 Units4 Txn1 Txn2 
 	healthpen= healthfood/salesTT;
 run;
 
+data healthy_pen;
+	set new;
+
+	where healthpen > 0.2;
+run;
+
 /**********************************/
 /*	 	distribution check 		*/
 /**********************************/
-
-
-
+proc univariate data=new ;
+	var salesTT salesorganic salesFF salesBM;
+	histogram salesTT salesorganic salesFF salesBM/normal;
+run;
 
 
 /*******************************/
@@ -224,7 +231,7 @@ SalesTtl1 SalesTtl2 SalesTtl3 SalesTtl4 salesorganic salesFF salesBM salesTT ;
 run;
 
 /*****************************************************/
-/* filter2: shopped BM $20 or more each quarter */
+/* filter2: shopped BM $20 or more each quarter 	*/
 /*****************************************************/
 
 proc tabulate data=new missing;
@@ -251,4 +258,25 @@ SalesTtl1 SalesTtl2 SalesTtl3 SalesTtl4 salesorganic salesFF salesBM salesTT org
 
 	tables OrgncShpd*FreeShpd*BlueShpd all,(salesorganic salesFF salesBM salesTT)*(sum='sales' colpctsum='sales pct' n='cus count' colpctn='count pct' mean='sales/cus')/
 		box='BM txn >52';
+run;
+
+
+
+/*******************************************************/
+/* full filter on best of three */
+/*****************************************************/
+/*****************************************************/
+/* filter2: shopped organic/BB/FM $20 or more each quarter */
+/*****************************************************/
+
+proc tabulate data=new missing;
+	class OrgncShpd  FreeShpd  BlueShpd;
+	var SalesOrgnc1 SalesOrgnc2 SalesOrgnc3 SalesOrgnc4 SalesFF1 SalesFF2 SalesFF3 SalesFF4 SalesBM1 SalesBM2 SalesBM3 SalesBM4
+SalesTtl1 SalesTtl2 SalesTtl3 SalesTtl4 salesorganic salesFF salesBM salesTT ;
+
+	where SalesOrgnc1>=20 and SalesOrgnc2>=20 and SalesOrgnc3>=20 and SalesOrgnc4>=20 and SalesBM1>=20 
+	and SalesBM2>=20 and SalesBM3>=20 and SalesBM4>=20 and SalesFF1>=20 and SalesFF2>=20 and SalesFF3>=20 and SalesFF4>=20;
+
+	tables OrgncShpd*FreeShpd*BlueShpd all,(salesorganic salesFF salesBM salesTT)*(sum colpctsum n colpctn mean)/
+		box='organic >$20 every quarter';
 run;
