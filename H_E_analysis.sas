@@ -100,6 +100,13 @@ end;
 
 run;
 
+/* delete the dataset to make more space */
+proc datasets library=work;
+	delete new;
+run;
+
+
+
 /* check the size of the dataset */
 proc contents data=new_1;
 run;
@@ -154,6 +161,45 @@ proc univariate data= new_1 noprint;
 run;
 ods graphics off;
 
+/* check some categories with promo */
+ods graphics on;
+proc univariate data= new_1 noprint;
+	where 0 <= Auto_promo_pen <= 1; /* make sure no weired number shows up */
+   histogram 	Auto_promo_pen;
+   /*inset n = 'Number of Homes' / position=ne;*/
+run;
+ods graphics off;
+
+/* drop all the negative numbers 9,772,801 observations left, before is 9,785,700 observations */
+/* intesting, even index is a function for string,but can still run in number,sas will convert them to string first,but output is still numberic */
+data new_2;
+	set new_1;
+    array filter_list {*} Elec_Sales	Spor_Sales	Imag_Sales	Fitn_Sales	Toys_Sales	offi_Sales	Smal_Sales	Seas_Sales	Auto_Sales	Kitc_Sales	Bath_Sales	Pati_Sales	Them_Sales	HomeDeco_Sales	Chri_Sales	Disp_Sales	Doll_Sales	Gift_Sales	HomeImp_Sales	HomeOrg_Sales	Appa_Sales;
+
+	do i=1 to dim(filter_list);
+	if index(filter_list[i],'-') then delete;
+	drop i;
+	end;
+run;
+
+
+
+/* correlation test for categories well... using txn as testing if you buy A also buy B*/
+proc corr data=new_2 pearson spearman kendall hoeffding;
+   var Elec_Txn	Spor_Txn	Imag_Txn	Fitn_Txn	Toys_Txn	offi_Txn	Smal_Txn	Seas_Txn	Auto_Txn	Kitc_Txn	Bath_Txn	Pati_Txn	Them_Txn	HomeDeco_Txn	Chri_Txn	Disp_Txn	Doll_Txn	Gift_Txn	HomeImp_Txn	HomeOrg_Txn	Appa_Txn;
+run;
+
+
+
+/* testing out the plots look */
+ods graphics on;
+proc corr data=new_2 pearson spearman kendall hoeffding;
+   var Elec_Sales Spor_Sales;
+run;
+ods graphics off;
+
+
+
 %macro distribution(x=)
 ods graphics on;
 proc univariate data= new_1 noprint;
@@ -165,30 +211,3 @@ ods graphics off;
 %mend distribution;
 
 %macro distribution(x=)
-/* 
-TtlTxn
-HnETxn
-
-
-Elec_Txn
-Spor_Txn
-Imag_Txn
-Fitn_Txn
-Toys_Txn
-offi_Txn
-Smal_Txn
-Seas_Txn
-Auto_Txn
-Kitc_Txn
-Bath_Txn
-Pati_Txn
-Them_Txn
-HomeDeco_Txn
-Chri_Txn
-Disp_Txn
-Doll_Txn
-Gift_Txn
-HomeImp_Txn
-HomeOrg_Txn
-Appa_Txn
-*/
